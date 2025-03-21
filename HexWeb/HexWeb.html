@@ -7,8 +7,8 @@
             position: relative;
             width: 1920px;
             height: 1440px;
-            margin: 600px auto;
-            transform: rotate(30deg); /* 整体旋转形成菱形 */
+            margin: 850px auto;
+            /*transform: rotate(30deg); /* 整体旋转形成菱形 */
         }
 
         .hex {
@@ -41,6 +41,8 @@
             font-weight: bold;
             color: black;
         }
+        
+
         /* 控制面板样式 */
         #controls {
             position: fixed;
@@ -48,7 +50,7 @@
             right: 0%;
             transform: translateX(-50%);
             background: rgb(230, 231, 230);
-            padding: 50px ;
+            padding: 50px;
             border-radius: 20px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
@@ -63,6 +65,26 @@
             border-radius: 20px;
             transition: background-color 0.3s ease;
         }
+
+        /* 坐标标签样式 */
+        .coordinate {
+            position: absolute;
+            font-size: 50px;
+            font-weight: bold;
+            
+        }
+
+        /* 左边坐标 */
+        .left-coordinate {
+            color: blue;
+            transform: rotate(0deg);
+        }
+
+        /* 上边坐标 */
+        .top-coordinate {
+            color: red;
+            
+        }
     </style>
 </head>
 <body>
@@ -70,6 +92,7 @@
     <div id="controls">
         <div><span class ="show">当前玩家：<span id="current-player">红方</span></span></div>
         <button class = "button" onclick="resetBoard()">清空棋盘</button>
+        <div></div>
     </div>
 
     <script>
@@ -78,6 +101,54 @@
             const boardElement = document.getElementById('board');
             const size = 11;
             const hexSize = 100; // 与CSS变量一致
+            
+            // 添加左下边坐标
+            for (let i = 0; i < size; i++) {
+                const coordinate = document.createElement('div');
+                coordinate.className = 'coordinate left-coordinate';
+                coordinate.textContent = i + 1;
+                const xOffset = -600+i*hexSize*1.5; // 调整坐标位置
+                const yOffset = 1150+i * hexSize*0.866  - hexSize * 0.866;
+                coordinate.style.left = `${xOffset}px`;
+                coordinate.style.top = `${yOffset}px`;
+                boardElement.appendChild(coordinate);
+            }
+
+            // 添加右上边坐标
+            for (let i = 0; i < size; i++) {
+                const coordinate = document.createElement('div');
+                coordinate.className = 'coordinate left-coordinate';
+                coordinate.textContent = i + 1;
+                const xOffset = 1050+i*hexSize*1.5; // 调整坐标位置
+                const yOffset = -10+i * hexSize*0.866  - hexSize * 0.866;
+                coordinate.style.left = `${xOffset}px`;
+                coordinate.style.top = `${yOffset}px`;
+                boardElement.appendChild(coordinate);
+            }
+            
+            // 添加左上边坐标
+            for (let i = 0; i < size; i++) {
+                const coordinate = document.createElement('div');
+                coordinate.className = 'coordinate top-coordinate';
+                coordinate.textContent = String.fromCharCode('A'.charCodeAt(0)+i);
+                const xOffset = -600+i*hexSize*1.5; // 调整坐标位置
+                const yOffset = 850-i * hexSize*0.866  - hexSize * 0.866;
+                coordinate.style.left = `${xOffset}px`;
+                coordinate.style.top = `${yOffset}px`;
+                boardElement.appendChild(coordinate);
+            }
+
+            // 添加右下边坐标
+            for (let i = 0; i < size; i++) {
+                const coordinate = document.createElement('div');
+                coordinate.className = 'coordinate top-coordinate';
+                coordinate.textContent = String.fromCharCode('A'.charCodeAt(0)+i);
+                const xOffset = 1050+i*hexSize*1.5; // 调整坐标位置
+                const yOffset = 2010-i * hexSize*0.866  - hexSize * 0.866;
+                coordinate.style.left = `${xOffset}px`;
+                coordinate.style.top = `${yOffset}px`;
+                boardElement.appendChild(coordinate);
+            }
             
             for(let row = 0; row < size; row++) {
                 for(let col = 0; col < size; col++) {
@@ -138,7 +209,7 @@
                     firstStepRow = row;
                     firstStepCol = col;
                 }
-                currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+                currentPlayer = currentPlayer === 'red'?'blue':'red';
             }
             updateBoardUI();
         }
@@ -184,8 +255,7 @@
                     cell.dataset.col = col;
                     cell.addEventListener('click', () => handleClick(row, col));
                     rowDiv.appendChild(cell);
-                }
-                
+                }  
             }
         });
     </script>

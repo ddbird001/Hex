@@ -120,7 +120,7 @@ int find(int x) {
     return parent[x] == -1 ? x : parent[x] = find(parent[x]);
 }
 int isWin(const Board &board) {
-    parent.assign(BOARD_SIZE * BOARD_SIZE, -1);
+    parent.assign(BOARD_SIZE * BOARD_SIZE+4, -1);
     auto unite = [&](int x, int y) {
         int rootX = find(x);
         int rootY = find(y);
