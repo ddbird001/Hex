@@ -75,7 +75,11 @@ struct Node {
         Node *selected = nullptr;
         double bestUCB = -1;
         for (Node *child : children) {
-            double UCB = child->winScore / child->visitCount + sqrt(2 * log(visitCount) / child->visitCount);
+            double UCB = 0;
+            if (child->visitCount == 0) {
+                UCB = +INFINITY;
+            }
+            UCB = child->winScore / child->visitCount + sqrt(2 * log(visitCount) / child->visitCount);
             if (UCB > bestUCB) {
                 bestUCB = UCB;
                 selected = child;
@@ -108,78 +112,6 @@ struct Node {
         return bestChild;
     }
 };  
-
-Point HexBot(const Board &board, int player) {
-    auto start = chrono::high_resolution_clock::now();
-    auto end = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-    Node *root = new Node(Point(-1, -1), player, nullptr);
-    while (duration < 1000) {
-        Node *node = root;
-        Board boardCopy = board;
-        while (!node->isFullyExpanded() && !boardCopy.isFull()) {
-            if (node->children.empty()) {
-                vector<Point> legalMoves;
-                for (int i = 0; i < BOARD_SIZE; i++) {
-                    for (int j = 0; j < BOARD_SIZE; j++) {
-                        if (boardCopy.isLegalMove(Point(i, j))) {
-                            legalMoves.push_back(Point(i, j));
-                        }
-                    }
-                }
-                srand(time(0));
-                std::random_device rd; // 随机设备
-                std::mt19937 g(rd());  // 随机数生成器
-                std::shuffle(legalMoves.begin(), legalMoves.end(), g);
-                for (Point move : legalMoves) {
-                    if (boardCopy.isLegalMove(move)) {
-                        node = node->addChild(move, 3 - node->player);
-                        boardCopy.makeMove(move, node->player);
-                        break;
-                    }
-                }
-            } else {
-                node = node->selectChild();
-                boardCopy.makeMove(node->move, node->player);
-            }
-        }
-        int winner = 0;
-        winner = simulate(boardCopy, 3 - node->player);
-    
-        while (node != nullptr) {
-            node->update(winner);
-            node = node->parent;
-        }
-        end = chrono::high_resolution_clock::now();
-        duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
-    }
-    Node *bestChild = root->bestChild();
-    return bestChild->move;
-}
-
-int simulate(Board board, int player) {
-    while (!board.isFull()) {
-        vector<Point> legalMoves;
-        for (int i = 0; i < BOARD_SIZE; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (board.isLegalMove(Point(i, j))) {
-                    legalMoves.push_back(Point(i, j));
-                }
-            }
-        }
-        srand(time(0));
-        std::random_device rd; // 随机设备
-        std::mt19937 g(rd());  // 随机数生成器
-        std::shuffle(legalMoves.begin(), legalMoves.end(), g);
-        Point move = legalMoves[0];
-        board.makeMove(move, player);
-        if (isWin(board, player)) {
-            return player;
-        }
-        player = 3 - player;
-    }
-    return 0;
-}
 
 //使用并查集判断是否胜利
 vector<int> parent(BOARD_SIZE * BOARD_SIZE, -1);
@@ -223,12 +155,84 @@ bool isWin(const Board &board, int player) {
     return find(BOARD_SIZE * BOARD_SIZE) == find(BOARD_SIZE * BOARD_SIZE + 1);
 }
 
+int simulate(Board board, int player) {
+    while (!board.isFull()) {
+        vector<Point> legalMoves;
+        for (int i = 0; i < BOARD_SIZE; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (board.isLegalMove(Point(i, j))) {
+                    legalMoves.push_back(Point(i, j));
+                }
+            }
+        }
+        srand(time(0));
+        std::random_device rd; // 随机设备
+        std::mt19937 g(rd());  // 随机数生成器
+        std::shuffle(legalMoves.begin(), legalMoves.end(), g);
+        Point move = legalMoves[0];
+        board.makeMove(move, player);
+        if (isWin(board, player)) {
+            return player;
+        }
+        player = 3 - player;
+    }
+    return 0;
+}
+
+Point HexBot(const Board &board, int player) {
+    auto start = chrono::high_resolution_clock::now();
+    auto end = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+    Node *root = new Node(Point(-1, -1), player, nullptr);
+    while (duration < 2000) {
+        Node *node = root;
+        Board boardCopy = board;
+        while (!node->isFullyExpanded() && !boardCopy.isFull()) {
+            if (node->children.empty()) {
+                vector<Point> legalMoves;
+                for (int i = 0; i < BOARD_SIZE; i++) {
+                    for (int j = 0; j < BOARD_SIZE; j++) {
+                        if (boardCopy.isLegalMove(Point(i, j))) {
+                            legalMoves.push_back(Point(i, j));
+                        }
+                    }
+                }
+                srand(time(0));
+                std::random_device rd; // 随机设备
+                std::mt19937 g(rd());  // 随机数生成器
+                std::shuffle(legalMoves.begin(), legalMoves.end(), g);
+                for (Point move : legalMoves) {
+                    if (boardCopy.isLegalMove(move)) {
+                        node = node->addChild(move, 3 - node->player);
+                        boardCopy.makeMove(move, node->player);
+                        break;
+                    }
+                }
+            } else {
+                node = node->selectChild();
+                boardCopy.makeMove(node->move, node->player);
+            }
+        }
+        int winner = 0;
+        winner = simulate(boardCopy, 3 - node->player);
+    
+        while (node != nullptr) {
+            node->update(winner);
+            node = node->parent;
+        }
+        end = chrono::high_resolution_clock::now();
+        duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+    }
+    Node *bestChild = root->bestChild();
+    return bestChild->move;
+}
+
 int main(void)
 {
     Board board = Board();
     board.makeMove(Point(0, 0), 1);
-    board.makeMove(Point(2, 1), 1);
-    board.makeMove(Point(1, 6), 2);
+    board.makeMove(Point(2, 1), 2);
+    board.makeMove(Point(1, 6), 1);
     board.makeMove(Point(3, 1), 2);
     Point move = HexBot(board, 1);
     cout << move.x << " " << move.y << endl;
