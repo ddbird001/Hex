@@ -11,6 +11,7 @@
 using namespace std;
 
 #define BOARD_SIZE 11
+#define DURATION 5000
 
 const int dx[6] = {0, 1, 1, 0, -1, -1};
 const int dy[6] = {-1, -1, 0, 1, 1, 0};
@@ -114,11 +115,11 @@ struct Node {
 };  
 
 //使用并查集判断是否胜利
-vector<int> parent(BOARD_SIZE * BOARD_SIZE, -1);
+vector<int> parent(BOARD_SIZE * BOARD_SIZE + 100, -1);
 int find(int x) {
     return parent[x] == -1 ? x : parent[x] = find(parent[x]);
 }
-bool isWin(const Board &board, int player) {
+int isWin(const Board &board) {
     parent.assign(BOARD_SIZE * BOARD_SIZE, -1);
     auto unite = [&](int x, int y) {
         int rootX = find(x);
@@ -129,13 +130,22 @@ bool isWin(const Board &board, int player) {
     };
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            if (board.board[i][j] == player) {
+            if (board.board[i][j] == 1) {
                 if (i == 0) {
                     unite(i * BOARD_SIZE + j, BOARD_SIZE * BOARD_SIZE);
                 }
                 if (i == BOARD_SIZE - 1) {
                     unite(i * BOARD_SIZE + j, BOARD_SIZE * BOARD_SIZE + 1);
                 }
+                for (int k = 0; k < 6; k++) {
+                    int x = i + dx[k];
+                    int y = j + dy[k];
+                    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && board.board[x][y] == 1) {
+                        unite(i * BOARD_SIZE + j, x * BOARD_SIZE + y);
+                    }
+                }
+            }
+            else if (board.board[i][j] == 2) {
                 if (j == 0) {
                     unite(i * BOARD_SIZE + j, BOARD_SIZE * BOARD_SIZE + 2);
                 }
@@ -145,18 +155,21 @@ bool isWin(const Board &board, int player) {
                 for (int k = 0; k < 6; k++) {
                     int x = i + dx[k];
                     int y = j + dy[k];
-                    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && board.board[x][y] == player) {
+                    if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE && board.board[x][y] == 2) {
                         unite(i * BOARD_SIZE + j, x * BOARD_SIZE + y);
                     }
                 }
             }
         }
     }
-    return find(BOARD_SIZE * BOARD_SIZE) == find(BOARD_SIZE * BOARD_SIZE + 1);
+    //printf("****\n");
+    if(find(BOARD_SIZE * BOARD_SIZE) == find(BOARD_SIZE * BOARD_SIZE + 1)) return 1;
+    else if(find(BOARD_SIZE * BOARD_SIZE + 2) == find(BOARD_SIZE * BOARD_SIZE + 3)) return 2;
+    else return 0;
 }
-
 int simulate(Board board, int player) {
     while (!board.isFull()) {
+        //printf("***\n");
         vector<Point> legalMoves;
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
@@ -171,7 +184,7 @@ int simulate(Board board, int player) {
         std::shuffle(legalMoves.begin(), legalMoves.end(), g);
         Point move = legalMoves[0];
         board.makeMove(move, player);
-        if (isWin(board, player)) {
+        if (isWin(board) == player) {
             return player;
         }
         player = 3 - player;
@@ -184,9 +197,10 @@ Point HexBot(const Board &board, int player) {
     auto end = chrono::high_resolution_clock::now();
     auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     Node *root = new Node(Point(-1, -1), player, nullptr);
-    while (duration < 2000) {
+    while (duration < DURATION) {
         Node *node = root;
         Board boardCopy = board;
+        bool flag = false;
         while (!node->isFullyExpanded() && !boardCopy.isFull()) {
             if (node->children.empty()) {
                 vector<Point> legalMoves;
@@ -205,6 +219,7 @@ Point HexBot(const Board &board, int player) {
                     if (boardCopy.isLegalMove(move)) {
                         node = node->addChild(move, 3 - node->player);
                         boardCopy.makeMove(move, node->player);
+                        flag = true;
                         break;
                     }
                 }
@@ -212,10 +227,12 @@ Point HexBot(const Board &board, int player) {
                 node = node->selectChild();
                 boardCopy.makeMove(node->move, node->player);
             }
+            if (flag) break;
         }
         int winner = 0;
         winner = simulate(boardCopy, 3 - node->player);
     
+        //printf("$$$\n");
         while (node != nullptr) {
             node->update(winner);
             node = node->parent;
@@ -229,12 +246,36 @@ Point HexBot(const Board &board, int player) {
 
 int main(void)
 {
-    Board board = Board();
-    board.makeMove(Point(0, 0), 1);
-    board.makeMove(Point(2, 1), 2);
-    board.makeMove(Point(1, 6), 1);
-    board.makeMove(Point(3, 1), 2);
-    Point move = HexBot(board, 1);
-    cout << move.x << " " << move.y << endl;
+    Board board;
+    int player = 1;
+    while (true)
+    {
+        int x, y;
+        printf("Input:");
+        scanf("%d %d", &x, &y);
+        if (board.isLegalMove(Point(x, y)))
+        {
+            board.makeMove(Point(x, y), player);
+            if (isWin(board) == 1)
+            {
+                printf("You win\n");
+                break;
+            }
+            player = 3 - player;
+            Point move = HexBot(board, player);
+            board.makeMove(move, player);
+            printf("computer:(%d, %d)\n", move.x, move.y);
+            if (isWin(board) == 2)
+            {
+                printf("computer win\n");
+                break;
+            }
+            player = 3 - player;
+        }
+        else
+        {
+            printf("非法坐标\n");
+        }
+    }
     return 0;
 }
