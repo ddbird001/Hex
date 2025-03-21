@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PlayHex</title>
+    <style>
+        #board {
+            position: relative;
+            width: 1920px;
+            height: 1440px;
+            margin: 600px auto;
+            transform: rotate(30deg); /* 整体旋转形成菱形 */
+        }
+
+        .hex {
+            --size: 98px; /* 六边形边长 */
+            width: calc(var(--size) * 2);
+            height: calc(var(--size) * 1.732); /* 高度=√3*边长 */
+            position: absolute;
+            clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+            background: #f0f0f0;
+            cursor: pointer;
+            margin: 1px;
+            transition: all 0.3s;
+        }
+
+        /* 六边形边框 */
+        .hex::before {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            right: 1px;
+            bottom: 1px;
+            clip-path: inherit;
+            border: 1px solid #999;
+        }
+
+        /*字体样式*/
+        .show {
+            font-size: 100px;
+            font-weight: bold;
+            color: black;
+        }
+        /* 控制面板样式 */
+        #controls {
+            position: fixed;
+            top: 10px;
+            right: 0%;
+            transform: translateX(-50%);
+            background: rgb(230, 231, 230);
+            padding: 50px ;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .button{
+            border: none;
+            background-color: rgb(255, 255, 255);
+            cursor: pointer;
+            font-size: 150px;
+            font-weight: bold;
+            color: rgb(7, 7, 7);
+            border-radius: 20px;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="board"></div>
+    <div id="controls">
+        <div><span class ="show">当前玩家：<span id="current-player">红方</span></span></div>
+        <button class = "button" onclick="resetBoard()">清空棋盘</button>
+    </div>
+
+    <script>
+        // 修改棋盘生成逻辑
+        document.addEventListener('DOMContentLoaded', () => {
+            const boardElement = document.getElementById('board');
+            const size = 11;
+            const hexSize = 100; // 与CSS变量一致
+            
+            for(let row = 0; row < size; row++) {
+                for(let col = 0; col < size; col++) {
+                    const hex = document.createElement('div');
+                    hex.className = 'hex';
+                    hex.dataset.row = row;
+                    hex.dataset.col = col;
+                    
+                    // 计算菱形布局位置
+                    const xOffset = (col - row) * hexSize * 1.5;
+                    const yOffset = (row + col) * hexSize * 0.866;
+                    
+                    hex.style.left = `${xOffset + 900}px`; // 900为居中偏移量
+                    hex.style.top = `${yOffset}px`;
+                    
+                    hex.addEventListener('click', () => handleClick(row, col));
+                    boardElement.appendChild(hex);
+                }
+            }
+        });
+
+        // 保持原有游戏逻辑不变
+        const board = Array(11).fill().map(() => Array(11).fill(null));
+        let currentPlayer = 'red';
+        let isFirstStepExchangePossible = false;
+        let firstStepRow = -1;
+        let firstStepCol = -1;
+        let moveCount = 0;
+
+        function handleClick(row, col) {
+            // 处理已放置的棋子（仅允许交换首步棋子）
+            if (board[row][col] !== null) {
+                if (isFirstStepExchangePossible && row === firstStepRow && col === firstStepCol) {
+                    resetBoard()
+                    moveCount = 2;
+                    board[10-col][10-row] = 'blue';
+                    isFirstStepExchangePossible = false;
+                    currentPlayer = 'red';
+                    updateBoardUI();
+                }
+                return;
+            }
+
+            // 处理空单元格
+            if (isFirstStepExchangePossible) {
+                // 交换阶段下棋
+                board[row][col] = 'blue';
+                moveCount++;
+                currentPlayer = 'red';
+                isFirstStepExchangePossible = false;
+            } else {
+                // 正常下棋流程
+                board[row][col] = currentPlayer;
+                moveCount++;
+                // 激活首步交换规则
+                if (currentPlayer === 'red' && moveCount === 1) {
+                    isFirstStepExchangePossible = true;
+                    firstStepRow = row;
+                    firstStepCol = col;
+                }
+                currentPlayer = currentPlayer === 'red' ? 'blue' : 'red';
+            }
+            updateBoardUI();
+        }
+
+        function resetBoard() {
+            // 重置游戏状态
+            for (let i = 0; i < 11; i++) {
+                for (let j = 0; j < 11; j++) {
+                    board[i][j] = null;
+                }
+            }
+            currentPlayer = 'red';
+            isFirstStepExchangePossible = false;
+            firstStepRow = -1;
+            firstStepCol = -1;
+            moveCount = 0;
+            updateBoardUI();
+        }
+
+        function updateBoardUI() {
+            // 更新棋盘显示
+            const cells = document.querySelectorAll('.hex');
+            cells.forEach(cell => {
+                const row = parseInt(cell.dataset.row);
+                const col = parseInt(cell.dataset.col);
+                const player = board[row][col];
+                cell.style.backgroundColor = player || '';
+            });
+            document.getElementById('current-player').textContent = 
+                currentPlayer === 'red' ? '红方' : '蓝方';
+        }
+
+        // 初始化棋盘
+        document.addEventListener('DOMContentLoaded', () => {
+            const boardElement = document.getElementById('board');
+            for (let row = 0; row < 11; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                for (let col = 0; col < 11; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'hex';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    cell.addEventListener('click', () => handleClick(row, col));
+                    rowDiv.appendChild(cell);
+                }
+                
+            }
+        });
+    </script>
+</body>
+</html>
